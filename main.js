@@ -1,15 +1,19 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { setupRaycasting } from './mouseInput.js';
+import { setupRaycasting, updateCameraMovement } from './mouseInput.js';
 
 // 1. Create the Scene
 const scene = new THREE.Scene();
 
 // 2. Create the Camera (Field of View, Aspect Ratio, Near Clip, Far Clip)
-const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 1000);
-camera.position.z = 1; // Move the camera back slightly so we aren't inside the cube
-camera.position.y = 0.5;
-camera.rotation.x = -Math.PI/8;
+const camera = new THREE.PerspectiveCamera(80, window.innerWidth / window.innerHeight, 0.1, 1000);
+
+camera.rotation.order = 'YXZ'; // Set rotation order to YXZ for proper pitch and yaw handling
+
+camera.position.x = -0.15;
+camera.position.y = 0.1;
+camera.position.z = 0.8; // Move the camera back slightly so we aren't inside the cube
+camera.rotation.x = 0;
 
 // 3. Create the Renderer and add it to the HTML
 const renderer = new THREE.WebGLRenderer();
@@ -19,17 +23,11 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement); 
 document.querySelector('h1').remove();
 
-// --- ADD A TEST CUBE ---
-const geometry = new THREE.BoxGeometry(1, 1, 1);
-const material = new THREE.MeshStandardMaterial({ color: 0x00ff00 });
-const cube = new THREE.Mesh(geometry, material);
-cube.castShadow = true;
-
 // Initialize the loader
 const loader = new GLTFLoader();
 
 // Tell it where to find your file
-loader.load('models/desk.glb', function (gltf) {
+loader.load('models/scene.glb', function (gltf) {
     
     const myModel = gltf.scene;
     
@@ -55,19 +53,14 @@ loader.load('models/desk.glb', function (gltf) {
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
 scene.add(ambientLight);
 
-// --- ADD A FLOOR ---
-const floorGeometry = new THREE.PlaneGeometry(10, 10);
-const floorMaterial = new THREE.MeshStandardMaterial({ color: 0x808080 }); // Gray floor
-const floor = new THREE.Mesh(floorGeometry, floorMaterial);
-floor.rotation.x = -Math.PI / 2; // Rotate it 90 degrees to lay flat
-floor.position.y = -1; // Move it slightly below the cube
-floor.receiveShadow = true; // SWITCH 2: The floor catches shadows
-scene.add(floor);
 
 // --- ADD DIRECTIONAL LIGHT (Like the Sun) ---
 const sunLight = new THREE.DirectionalLight(0xffffff, 0.5);
 sunLight.position.set(3, 5, 2); // Position it up and to the side
 sunLight.castShadow = true; // SWITCH 3: The light generates shadows
+sunLight.shadow.bias = -0.001; // Reduce shadow artifacts
+sunLight.shadow.normalBias = 0.05;
+
 sunLight.shadow.radius = 500; // Increase this number for a blurrier shadow
 // Increase the shadow map resolution 
 sunLight.shadow.mapSize.width = 1024; 
@@ -81,7 +74,7 @@ setupRaycasting(camera, scene);
 function animate() {
     requestAnimationFrame(animate);
     
-    
+    updateCameraMovement(camera);
     
     renderer.render(scene, camera);
 }
